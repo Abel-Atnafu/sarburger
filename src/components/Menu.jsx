@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { menuItems, categories } from '../data/menuItems'
+import { menuItems as staticItems, categories } from '../data/menuItems'
+import { api } from '../lib/api'
 import MenuCard from './MenuCard'
 
 const containerVariants = {
@@ -15,16 +16,22 @@ const cardVariants = {
 
 export default function Menu() {
   const [activeCategory, setActiveCategory] = useState('all')
+  const [items, setItems] = useState(staticItems)
+
+  useEffect(() => {
+    api.getMenu()
+      .then(setItems)
+      .catch(() => setItems(staticItems)) // fallback to static data
+  }, [])
 
   const filtered =
     activeCategory === 'all'
-      ? menuItems
-      : menuItems.filter((item) => item.category === activeCategory)
+      ? items
+      : items.filter((item) => item.category === activeCategory)
 
   return (
     <section id="menu" className="py-24 px-4 sm:px-6 lg:px-8" style={{ backgroundColor: '#0D0D0D' }}>
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -43,7 +50,6 @@ export default function Menu() {
           </h2>
         </motion.div>
 
-        {/* Category filter tabs */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -67,7 +73,6 @@ export default function Menu() {
           ))}
         </motion.div>
 
-        {/* Cards grid */}
         <motion.div
           key={activeCategory}
           variants={containerVariants}

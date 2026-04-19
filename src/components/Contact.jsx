@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { WHATSAPP_NUMBER } from '../data/menuItems'
+import { api } from '../lib/api'
 
 // TODO: Replace with real contact info
 const PHONE = '+251 91 XXX XXXX'
-const INSTAGRAM = 'https://instagram.com/sarburger' // TODO: Replace with real Instagram handle
+const INSTAGRAM = 'https://instagram.com/sarburger'
 
 const contactCards = [
   {
@@ -45,24 +46,26 @@ const contactCards = [
 export default function Contact() {
   const [form, setForm] = useState({ name: '', contact: '', message: '' })
   const [submitted, setSubmitted] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    const subject = encodeURIComponent(`Message from ${form.name}`)
-    const body = encodeURIComponent(`Name: ${form.name}\nContact: ${form.contact}\n\n${form.message}`)
-    // TODO: Replace email address with real one
-    window.location.href = `mailto:hello@sarburger.com?subject=${subject}&body=${body}`
-    setSubmitted(true)
+    setLoading(true)
+    setError('')
+    try {
+      await api.submitContact(form)
+      setSubmitted(true)
+    } catch (err) {
+      setError(err.message ?? 'Something went wrong. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
-    <section
-      id="contact"
-      className="py-24 px-4 sm:px-6 lg:px-8"
-      style={{ backgroundColor: '#0D0D0D' }}
-    >
+    <section id="contact" className="py-24 px-4 sm:px-6 lg:px-8" style={{ backgroundColor: '#0D0D0D' }}>
       <div className="max-w-4xl mx-auto">
-        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -84,7 +87,6 @@ export default function Contact() {
           </p>
         </motion.div>
 
-        {/* Contact cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 my-12">
           {contactCards.map((card, i) => (
             <motion.a
@@ -109,7 +111,6 @@ export default function Contact() {
           ))}
         </div>
 
-        {/* Contact form */}
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -121,83 +122,58 @@ export default function Contact() {
           {submitted ? (
             <div className="text-center py-8">
               <div className="text-5xl mb-4">🙌</div>
-              <h3 className="font-display text-3xl mb-2" style={{ color: '#FF6B35' }}>
-                THANKS!
-              </h3>
+              <h3 className="font-display text-3xl mb-2" style={{ color: '#FF6B35' }}>THANKS!</h3>
               <p style={{ color: '#F5F0E8CC' }}>We&apos;ll reach out soon.</p>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2" style={{ color: '#F5F0E880' }}>
-                    Name
-                  </label>
+                  <label className="block text-sm font-medium mb-2" style={{ color: '#F5F0E880' }}>Name</label>
                   <input
-                    type="text"
-                    required
-                    value={form.name}
+                    type="text" required value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
                     placeholder="Your name"
-                    className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all duration-200 focus:ring-2"
-                    style={{
-                      backgroundColor: '#0D0D0D',
-                      border: '1px solid #2A2A2A',
-                      color: '#F5F0E8',
-                    }}
+                    className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all duration-200"
+                    style={{ backgroundColor: '#0D0D0D', border: '1px solid #2A2A2A', color: '#F5F0E8' }}
                     onFocus={(e) => (e.currentTarget.style.borderColor = '#FF6B35')}
                     onBlur={(e) => (e.currentTarget.style.borderColor = '#2A2A2A')}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2" style={{ color: '#F5F0E880' }}>
-                    Phone / Email
-                  </label>
+                  <label className="block text-sm font-medium mb-2" style={{ color: '#F5F0E880' }}>Phone / Email</label>
                   <input
-                    type="text"
-                    required
-                    value={form.contact}
+                    type="text" required value={form.contact}
                     onChange={(e) => setForm({ ...form, contact: e.target.value })}
                     placeholder="How we reach you"
                     className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all duration-200"
-                    style={{
-                      backgroundColor: '#0D0D0D',
-                      border: '1px solid #2A2A2A',
-                      color: '#F5F0E8',
-                    }}
+                    style={{ backgroundColor: '#0D0D0D', border: '1px solid #2A2A2A', color: '#F5F0E8' }}
                     onFocus={(e) => (e.currentTarget.style.borderColor = '#FF6B35')}
                     onBlur={(e) => (e.currentTarget.style.borderColor = '#2A2A2A')}
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: '#F5F0E880' }}>
-                  Message
-                </label>
+                <label className="block text-sm font-medium mb-2" style={{ color: '#F5F0E880' }}>Message</label>
                 <textarea
-                  required
-                  rows={4}
-                  value={form.message}
+                  required rows={4} value={form.message}
                   onChange={(e) => setForm({ ...form, message: e.target.value })}
                   placeholder="What's on your mind?"
                   className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all duration-200 resize-none"
-                  style={{
-                    backgroundColor: '#0D0D0D',
-                    border: '1px solid #2A2A2A',
-                    color: '#F5F0E8',
-                  }}
+                  style={{ backgroundColor: '#0D0D0D', border: '1px solid #2A2A2A', color: '#F5F0E8' }}
                   onFocus={(e) => (e.currentTarget.style.borderColor = '#FF6B35')}
                   onBlur={(e) => (e.currentTarget.style.borderColor = '#2A2A2A')}
                 />
               </div>
+              {error && <p className="text-sm" style={{ color: '#C1121F' }}>{error}</p>}
               <button
-                type="submit"
-                className="w-full py-4 rounded-xl font-semibold uppercase tracking-widest text-sm transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                type="submit" disabled={loading}
+                className="w-full py-4 rounded-xl font-semibold uppercase tracking-widest text-sm transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
                 style={{ backgroundColor: '#C1121F', color: '#F5F0E8' }}
-                onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#FF6B35')}
+                onMouseOver={(e) => !loading && (e.currentTarget.style.backgroundColor = '#FF6B35')}
                 onMouseOut={(e) => (e.currentTarget.style.backgroundColor = '#C1121F')}
               >
-                Send Message
+                {loading ? 'Sending...' : 'Send Message'}
               </button>
             </form>
           )}

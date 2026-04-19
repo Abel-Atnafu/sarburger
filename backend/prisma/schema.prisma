@@ -1,0 +1,60 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+}
+
+model MenuItem {
+  id          Int      @id @default(autoincrement())
+  category    String   // burgers | sides | drinks | combos
+  name        String
+  description String
+  price       Int?     // null for combos with no fixed price
+  savingLabel String?  // e.g. "Save 50 ETB" for combos
+  image       String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  OrderItem   OrderItem[]
+}
+
+model Order {
+  id           Int         @id @default(autoincrement())
+  customerName String
+  customerPhone String
+  notes        String?
+  status       String      @default("pending") // pending | confirmed | ready | done | cancelled
+  total        Int         @default(0)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  items        OrderItem[]
+}
+
+model OrderItem {
+  id         Int      @id @default(autoincrement())
+  order      Order    @relation(fields: [orderId], references: [id])
+  orderId    Int
+  menuItem   MenuItem @relation(fields: [menuItemId], references: [id])
+  menuItemId Int
+  quantity   Int      @default(1)
+  price      Int      // snapshot price at time of order
+}
+
+model Contact {
+  id        Int      @id @default(autoincrement())
+  name      String
+  contact   String   // phone or email
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
