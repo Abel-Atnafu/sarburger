@@ -1,9 +1,16 @@
+import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { WHATSAPP_NUMBER } from '../data/menuItems'
+import { useCart } from '../context/CartContext'
 
 export default function MenuCard({ item }) {
-  const waText = encodeURIComponent(`Hi, I'd like to order: ${item.name}`)
-  const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${waText}`
+  const { addItem } = useCart()
+  const [added, setAdded] = useState(false)
+
+  const handleAdd = () => {
+    addItem(item)
+    setAdded(true)
+    setTimeout(() => setAdded(false), 1200)
+  }
 
   return (
     <motion.div
@@ -32,10 +39,7 @@ export default function MenuCard({ item }) {
 
       {/* Body */}
       <div className="flex flex-col flex-1 p-4 gap-2">
-        <h3
-          className="font-display text-2xl tracking-wide leading-tight"
-          style={{ color: '#F5F0E8' }}
-        >
+        <h3 className="font-display text-2xl tracking-wide leading-tight" style={{ color: '#F5F0E8' }}>
           {item.name}
         </h3>
         <p className="text-sm leading-relaxed flex-1" style={{ color: '#F5F0E899' }}>
@@ -43,19 +47,18 @@ export default function MenuCard({ item }) {
         </p>
         <div className="flex items-center justify-between mt-3">
           <span className="font-semibold text-lg" style={{ color: '#FF6B35' }}>
-            {item.price !== null ? `${item.price} ETB` : '—'}
+            {item.price !== null && item.price !== undefined ? `${item.price} ETB` : '—'}
           </span>
-          <a
-            href={waUrl}
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            onClick={handleAdd}
             className="px-4 py-2 rounded-full text-xs font-semibold uppercase tracking-wide transition-all duration-200 hover:scale-105 active:scale-95"
-            style={{ backgroundColor: '#C1121F', color: '#F5F0E8' }}
-            onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#FF6B35')}
-            onMouseOut={(e) => (e.currentTarget.style.backgroundColor = '#C1121F')}
+            style={{
+              backgroundColor: added ? '#22C55E' : '#C1121F',
+              color: '#F5F0E8',
+            }}
           >
-            Add to Order
-          </a>
+            {added ? '✓ Added' : 'Add to Cart'}
+          </button>
         </div>
       </div>
     </motion.div>

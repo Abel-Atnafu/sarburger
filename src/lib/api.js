@@ -16,6 +16,8 @@ const ORDER_FIELDS = `
   customerName:customer_name,
   customerPhone:customer_phone,
   notes, status, total,
+  screenshotUrl:screenshot_url,
+  paymentStatus:payment_status,
   createdAt:created_at,
   updatedAt:updated_at,
   items:order_items (
@@ -34,9 +36,9 @@ function raise(error) {
   if (error) throw new Error(error.message)
 }
 
-// ── AUTH ─────────────────────────────────────────────────────
-
 export const api = {
+  // ── AUTH ───────────────────────────────────────────────────
+
   login: async (email, password) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     raise(error)
@@ -80,13 +82,13 @@ export const api = {
     const { data, error } = await supabase
       .from('menu_items')
       .insert({
-        category: item.category,
-        name: item.name,
-        description: item.description,
-        price: item.price ?? null,
+        category:     item.category,
+        name:         item.name,
+        description:  item.description,
+        price:        item.price ?? null,
         saving_label: item.savingLabel ?? null,
-        image: item.image,
-        is_active: item.isActive ?? true,
+        image:        item.image,
+        is_active:    item.isActive ?? true,
       })
       .select(MENU_FIELDS)
       .single()
@@ -98,13 +100,13 @@ export const api = {
     const { data, error } = await supabase
       .from('menu_items')
       .update({
-        category: item.category,
-        name: item.name,
-        description: item.description,
-        price: item.price ?? null,
+        category:     item.category,
+        name:         item.name,
+        description:  item.description,
+        price:        item.price ?? null,
         saving_label: item.savingLabel ?? null,
-        image: item.image,
-        is_active: item.isActive ?? true,
+        image:        item.image,
+        is_active:    item.isActive ?? true,
       })
       .eq('id', id)
       .select(MENU_FIELDS)
@@ -118,10 +120,23 @@ export const api = {
     raise(error)
   },
 
+  // ── STORAGE ─────────────────────────────────────────────────
+
+  uploadScreenshot: async (file) => {
+    const ext      = file.name.split('.').pop()
+    const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+    const { data, error } = await supabase.storage
+      .from('screenshots')
+      .upload(filename, file, { contentType: file.type, upsert: false })
+    raise(error)
+    const { data: { publicUrl } } = supabase.storage.from('screenshots').getPublicUrl(data.path)
+    return publicUrl
+  },
+
   // ── ORDERS (public) ─────────────────────────────────────────
 
-  placeOrder: async ({ customerName, customerPhone, notes, items }) => {
-    // Fetch live prices to calculate total server-side
+  placeOrder: async ({ customerName, customerPhone, notes, items, screenshotUrl }) => {
+    // Fetch live prices to calculate total
     const menuIds = items.map((i) => i.menuItemId)
     const { data: menuItems, error: menuErr } = await supabase
       .from('menu_items')
@@ -131,25 +146,31 @@ export const api = {
     raise(menuErr)
 
     const priceMap = Object.fromEntries(menuItems.map((m) => [m.id, m.price ?? 0]))
-    const total = items.reduce((sum, i) => sum + (priceMap[i.menuItemId] ?? 0) * i.quantity, 0)
+    const total    = items.reduce((sum, i) => sum + (priceMap[i.menuItemId] ?? 0) * i.quantity, 0)
 
     const { data: order, error: orderErr } = await supabase
       .from('orders')
-      .insert({ customer_name: customerName, customer_phone: customerPhone, notes: notes ?? null, total })
+      .insert({
+        customer_name:  customerName,
+        customer_phone: customerPhone,
+        notes:          notes ?? null,
+        total,
+        screenshot_url:  screenshotUrl ?? null,
+        payment_status: screenshotUrl ? 'uploaded' : 'pending',
+      })
       .select('id')
       .single()
     raise(orderErr)
 
     const { error: itemsErr } = await supabase.from('order_items').insert(
       items.map((i) => ({
-        order_id: order.id,
+        order_id:     order.id,
         menu_item_id: i.menuItemId,
-        quantity: i.quantity,
-        price: priceMap[i.menuItemId] ?? 0,
+        quantity:     i.quantity,
+        price:        priceMap[i.menuItemId] ?? 0,
       }))
     )
     raise(itemsErr)
-
     return order
   },
 
@@ -169,6 +190,28 @@ export const api = {
       .update({ status })
       .eq('id', id)
       .select('id, status')
+      .single()
+    raise(error)
+    return data
+  },
+
+  verifyPayment: async (id) => {
+    const { data, error } = await supabase
+      .from('orders')
+      .update({ payment_status: 'verified', status: 'confirmed' })
+      .eq('id', id)
+      .select('id, status, payment_status')
+      .single()
+    raise(error)
+    return data
+  },
+
+  rejectPayment: async (id) => {
+    const { data, error } = await supabase
+      .from('orders')
+      .update({ payment_status: 'rejected', status: 'cancelled' })
+      .eq('id', id)
+      .select('id, status, payment_status')
       .single()
     raise(error)
     return data
