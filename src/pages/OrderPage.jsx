@@ -4,10 +4,10 @@ import { motion } from 'framer-motion'
 import { useCart } from '../context/CartContext'
 import { api } from '../lib/api'
 
-// TODO: Replace with real payment details
-const CBE_ACCOUNT    = '1000XXXXXXXXXX'
-const CBE_NAME       = 'SARBURGER'
-const TELEBIRR_NUMBER = '09XXXXXXXX'
+// TODO: Replace with real payment details before going live
+const CBE_ACCOUNT     = '1000136789012'
+const CBE_NAME        = 'SARBURGER'
+const TELEBIRR_NUMBER = '0912345678'
 
 export default function OrderPage() {
   const { items, total, clearCart } = useCart()
