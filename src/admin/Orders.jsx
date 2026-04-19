@@ -5,23 +5,31 @@ import { api } from '../lib/api'
 const STATUSES = ['all', 'pending', 'confirmed', 'ready', 'done', 'cancelled']
 
 const statusColors = {
-  pending: '#FF6B35',
+  pending:   '#FF6B35',
   confirmed: '#3B82F6',
-  ready: '#A855F7',
-  done: '#22C55E',
+  ready:     '#A855F7',
+  done:      '#22C55E',
   cancelled: '#6B7280',
 }
 
+const paymentColors = {
+  pending:  '#6B7280',
+  uploaded: '#FF6B35',
+  verified: '#22C55E',
+  rejected: '#C1121F',
+}
+
 const nextStatus = {
-  pending: 'confirmed',
+  pending:   'confirmed',
   confirmed: 'ready',
-  ready: 'done',
+  ready:     'done',
 }
 
 export default function Orders() {
-  const [orders, setOrders] = useState([])
-  const [filter, setFilter] = useState('all')
+  const [orders, setOrders]     = useState([])
+  const [filter, setFilter]     = useState('all')
   const [expanded, setExpanded] = useState(null)
+  const [lightbox, setLightbox] = useState(null)
 
   const load = () =>
     api.getOrders(filter === 'all' ? '' : filter).then(setOrders).catch(console.error)
@@ -38,6 +46,17 @@ export default function Orders() {
   const cancel = async (id) => {
     if (!confirm('Cancel this order?')) return
     await api.updateOrderStatus(id, 'cancelled').catch(console.error)
+    load()
+  }
+
+  const verifyPayment = async (id) => {
+    await api.verifyPayment(id).catch(console.error)
+    load()
+  }
+
+  const rejectPayment = async (id) => {
+    if (!confirm('Reject this payment? The order will be cancelled.')) return
+    await api.rejectPayment(id).catch(console.error)
     load()
   }
 
@@ -75,11 +94,20 @@ export default function Orders() {
                 onClick={() => setExpanded(expanded === order.id ? null : order.id)}
               >
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-semibold" style={{ color: '#F5F0E8' }}>{order.customerName}</span>
                     <span className="text-xs px-2 py-0.5 rounded-full capitalize" style={{ backgroundColor: `${statusColors[order.status]}22`, color: statusColors[order.status] }}>
                       {order.status}
                     </span>
+                    {/* Payment status badge */}
+                    <span className="text-xs px-2 py-0.5 rounded-full capitalize" style={{ backgroundColor: `${paymentColors[order.paymentStatus]}22`, color: paymentColors[order.paymentStatus] }}>
+                      💳 {order.paymentStatus}
+                    </span>
+                    {order.screenshotUrl && (
+                      <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: '#22C55E22', color: '#22C55E' }}>
+                        📸 Screenshot
+                      </span>
+                    )}
                   </div>
                   <div className="text-xs mt-0.5" style={{ color: '#F5F0E860' }}>
                     {order.customerPhone} · {new Date(order.createdAt).toLocaleString()}
@@ -87,18 +115,19 @@ export default function Orders() {
                 </div>
                 <div className="text-right shrink-0">
                   <div className="font-semibold" style={{ color: '#FF6B35' }}>{order.total} ETB</div>
-                  <div className="text-xs" style={{ color: '#F5F0E840' }}>{order.items.length} item{order.items.length !== 1 ? 's' : ''}</div>
+                  <div className="text-xs" style={{ color: '#F5F0E840' }}>{order.items?.length} item{order.items?.length !== 1 ? 's' : ''}</div>
                 </div>
                 <span style={{ color: '#F5F0E840' }}>{expanded === order.id ? '▲' : '▼'}</span>
               </div>
 
               {/* Expanded detail */}
               {expanded === order.id && (
-                <div className="px-5 pb-4" style={{ borderTop: '1px solid #2A2A2A' }}>
+                <div className="px-5 pb-5" style={{ borderTop: '1px solid #2A2A2A' }}>
+                  {/* Items */}
                   <div className="py-3 space-y-2">
-                    {order.items.map((item) => (
+                    {order.items?.map((item) => (
                       <div key={item.id} className="flex justify-between text-sm">
-                        <span style={{ color: '#F5F0E8CC' }}>{item.quantity}× {item.menuItem.name}</span>
+                        <span style={{ color: '#F5F0E8CC' }}>{item.quantity}× {item.menuItem?.name}</span>
                         <span style={{ color: '#FF6B35' }}>{item.price * item.quantity} ETB</span>
                       </div>
                     ))}
@@ -108,16 +137,54 @@ export default function Orders() {
                       </p>
                     )}
                   </div>
-                  <div className="flex gap-2 mt-2">
+
+                  {/* Payment screenshot */}
+                  {order.screenshotUrl && (
+                    <div className="mb-4">
+                      <p className="text-xs font-semibold mb-2 uppercase tracking-wide" style={{ color: '#F5F0E860' }}>Payment Screenshot</p>
+                      <img
+                        src={order.screenshotUrl}
+                        alt="Payment proof"
+                        className="max-h-48 rounded-xl object-contain cursor-pointer border"
+                        style={{ borderColor: '#2A2A2A' }}
+                        onClick={() => setLightbox(order.screenshotUrl)}
+                      />
+                    </div>
+                  )}
+
+                  {/* Action buttons */}
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {/* Payment verify/reject — only show if screenshot uploaded and not yet verified/rejected */}
+                    {order.screenshotUrl && order.paymentStatus === 'uploaded' && (
+                      <>
+                        <button
+                          onClick={() => verifyPayment(order.id)}
+                          className="px-4 py-2 rounded-xl text-xs font-semibold uppercase tracking-wide"
+                          style={{ backgroundColor: '#22C55E22', color: '#22C55E', border: '1px solid #22C55E44' }}
+                        >
+                          ✓ Verify Payment
+                        </button>
+                        <button
+                          onClick={() => rejectPayment(order.id)}
+                          className="px-4 py-2 rounded-xl text-xs font-semibold uppercase tracking-wide"
+                          style={{ backgroundColor: '#C1121F22', color: '#C1121F', border: '1px solid #C1121F44' }}
+                        >
+                          ✕ Reject Payment
+                        </button>
+                      </>
+                    )}
+
+                    {/* Order status advance */}
                     {nextStatus[order.status] && (
                       <button
                         onClick={() => advance(order)}
-                        className="px-4 py-2 rounded-xl text-xs font-semibold uppercase tracking-wide transition-all hover:scale-105"
+                        className="px-4 py-2 rounded-xl text-xs font-semibold uppercase tracking-wide"
                         style={{ backgroundColor: statusColors[nextStatus[order.status]], color: '#fff' }}
                       >
                         Mark {nextStatus[order.status]}
                       </button>
                     )}
+
                     {order.status !== 'cancelled' && order.status !== 'done' && (
                       <button
                         onClick={() => cancel(order.id)}
@@ -132,6 +199,22 @@ export default function Orders() {
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Screenshot lightbox */}
+      {lightbox && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: 'rgba(0,0,0,0.92)' }}
+          onClick={() => setLightbox(null)}
+        >
+          <img src={lightbox} alt="Payment screenshot" className="max-w-full max-h-[90vh] rounded-2xl object-contain" />
+          <button
+            className="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center text-xl font-bold"
+            style={{ backgroundColor: '#1A1A1A', color: '#F5F0E8' }}
+            onClick={() => setLightbox(null)}
+          >×</button>
         </div>
       )}
     </AdminLayout>
