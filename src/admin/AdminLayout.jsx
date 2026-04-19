@@ -3,17 +3,17 @@ import { useAuth } from './AuthContext'
 
 const navItems = [
   { to: '/admin/dashboard', label: 'Dashboard', icon: '📊' },
-  { to: '/admin/menu', label: 'Menu', icon: '🍔' },
-  { to: '/admin/orders', label: 'Orders', icon: '📋' },
-  { to: '/admin/contacts', label: 'Messages', icon: '✉️' },
+  { to: '/admin/menu',      label: 'Menu',       icon: '🍔' },
+  { to: '/admin/orders',    label: 'Orders',     icon: '📋' },
+  { to: '/admin/contacts',  label: 'Messages',   icon: '✉️' },
 ]
 
 export default function AdminLayout({ children }) {
   const { logout } = useAuth()
   const navigate = useNavigate()
 
-  const handleLogout = () => {
-    logout()
+  const handleLogout = async () => {
+    await logout()
     navigate('/admin/login')
   }
 

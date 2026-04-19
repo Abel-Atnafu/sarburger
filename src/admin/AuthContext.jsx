@@ -1,24 +1,28 @@
-import { createContext, useContext, useState } from 'react'
+import { createContext, useContext, useState, useEffect } from 'react'
 import { api } from '../lib/api'
 
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
-  const [token, setToken] = useState(() => localStorage.getItem('sb_token'))
+  const [session, setSession] = useState(undefined) // undefined = loading
 
-  const login = async (email, password) => {
-    const data = await api.login(email, password)
-    localStorage.setItem('sb_token', data.token)
-    setToken(data.token)
-  }
+  useEffect(() => {
+    api.getSession().then(({ data }) => setSession(data.session))
+    const { data: { subscription } } = api.onAuthChange((_event, s) => setSession(s))
+    return () => subscription.unsubscribe()
+  }, [])
 
-  const logout = () => {
-    localStorage.removeItem('sb_token')
-    setToken(null)
-  }
+  const login = (email, password) => api.login(email, password)
+  const logout = () => api.logout()
 
   return (
-    <AuthContext.Provider value={{ token, login, logout, isAuthed: !!token }}>
+    <AuthContext.Provider value={{
+      session,
+      isAuthed: !!session,
+      isLoading: session === undefined,
+      login,
+      logout,
+    }}>
       {children}
     </AuthContext.Provider>
   )
