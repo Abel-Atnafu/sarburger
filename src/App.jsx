@@ -13,7 +13,6 @@ import Gallery from './components/Gallery'
 import FindUs from './components/FindUs'
 import Contact from './components/Contact'
 import Footer from './components/Footer'
-import FloatingWhatsApp from './components/FloatingWhatsApp'
 
 // Lazy loaded — both use Supabase SDK
 const OrderPage   = lazy(() => import('./pages/OrderPage'))
@@ -46,7 +45,6 @@ function PublicSite() {
         <Contact />
       </main>
       <Footer />
-      <FloatingWhatsApp />
     </>
   )
 }
