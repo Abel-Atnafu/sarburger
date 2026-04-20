@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { WHATSAPP_NUMBER } from '../data/menuItems'
+import { useNavigate } from 'react-router-dom'
 
 const stagger = {
   hidden: {},
@@ -12,6 +12,7 @@ const fadeUp = {
 }
 
 export default function Hero() {
+  const navigate = useNavigate()
   const scrollToMenu = () => {
     document.getElementById('menu')?.scrollIntoView({ behavior: 'smooth' })
   }
@@ -90,10 +91,8 @@ export default function Hero() {
             See Our Menu
           </button>
 
-          <a
-            href={`https://wa.me/${WHATSAPP_NUMBER}?text=Hi%2C%20I%27d%20like%20to%20order%3A%20`}
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            onClick={() => navigate('/order')}
             className="px-8 py-4 rounded-full font-semibold uppercase tracking-widest text-sm border-2 transition-all duration-200 hover:scale-105 active:scale-95"
             style={{ borderColor: '#F5F0E8', color: '#F5F0E8', backgroundColor: 'transparent' }}
             onMouseOver={(e) => {
@@ -105,8 +104,8 @@ export default function Hero() {
               e.currentTarget.style.color = '#F5F0E8'
             }}
           >
-            Order on WhatsApp
-          </a>
+            Order Now
+          </button>
         </motion.div>
       </motion.div>
 
